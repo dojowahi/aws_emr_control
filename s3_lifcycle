@@ -1,0 +1,64 @@
+from datetime import datetime, timedelta
+import boto3
+from botocore.exceptions import ClientError
+
+
+s3 = boto3.resource('s3')
+bucketname = 'stx-usw2-ehc-prd-data-factory'
+deep_archive_list = ['P033_PES_HD_FACT','P074_AR_MEASUREMENT_FACT','P095_CONCURRENT_AFH_FACT','P095_WIRP_DATA_FACT','P107_UNVERIFD_FLAW_COUNT2_FACT','P107_VERIFIED_FLAW_LENGTH_FACT','P130_PLIST_DETAILED_FACT','P135_DETCR_THRESHOLD_CAL_FACT','P135_GAIN_CAL_FACT','P135_HD_STBLTY_AGC_STATS2_FACT','P135_MEASUREMENT_DATA_FACT','P135_METRIC_STATS2_FACT','P135_REVS_IN_CONTACT_FACT','P135_SEARCH_RESULTS_FACT','P135_SEARCH_RESULTS_DAC_FACT','P150_LINEARITY_GAINS2_FACT','P150_LINEARITY_GAINS3_FACT','P150_ZONED_LINEARITY_POLY_FACT','P152_BODE_GAIN_ONLY_FACT','P152_BODE_GAIN_PHASE_FACT','P166_FEATURE_RELEASE_REV_FACT','P172_HCS_COEFFICIENTS_FACT','P172_SWD_ADAPTS_FACT','P172_WEDGE_DATA_FACT','P172_WEDGE_DATA2_FACT','P172_ZONED_SERVO_FACT','P172_ZONE_DATA_FACT','P172_ZONE_TBL_FACT','P180_NRRO_RRO_RSNC_FACT','P191_CLR_COEF_FACT','P191_HIRP_ADJ_CURVE_FIT_FACT','P2108_BCI_SUM_HD_ZONE_FACT','P2109_DFS_BER_ID_STATS_FACT','P211_TPI_CAP_AVG_FACT','P211_WRT_PWR_TBL_FACT','P220_WP_OPTI_BER_ATI_STE_FACT','P246_DUO_AXIAL_DIST_2_FACT','P249_HM_DEGRADATION_FACT','P251_ATTENUATION_VGA2_FACT','P251_BEST_ERROR_RATE_FACT','P251_BEST_FITNESS_POINT2_FACT','P251_DIBIT_OPTI_VALUES_FACT','P255_FIR_LSI_DATA_FACT','P255_LOOP_FIR_AVAGO_FACT','P255_MARVELL_WRITE_PARAMS_FACT','P255_MISC_DATA_AVAGO_FACT','P255_MSMR_BEDF_FIR_FACT','P255_MSMR_FIR_MARVELL_FACT','P255_MSMR_LOOP_LPE_FACT','P255_NPML_TAP0_1_LSI_DATA_FACT','P255_NPML_TAP2_3_LSI_DATA_FACT','P255_NPTARG_MISC_LSI_DATA_FACT','P255_PRECOMP_VGA_LSI_DATA_FACT','P315_CAL_THRSHLD_RESULT_FACT','P330_SQZ_BIN_DATA_FACT','P438_FINE_BATHTUB_SWEEP_FACT','P451_DERIVED_OPTI_SUMMARY_FACT','P451_MSMR_OPTI_RESULTS_FACT','P451_MSMR_SWEEP_DATA_FACT','P451_MSMR_SWEEP_DATA_EXT_FACT','P451_RGSTR_SWEEP_DATA_FACT','P_HCS_SUMMARY_FACT','P_QUICK_ERR_RATE_FACT','P_SIDE_ENCROACH_BER_FACT','P_VBAR_SMR_MEASUREMENT_FACT','TEST_TIME_BY_TEST_FACT']
+glacier_list=['P109_DFS_ERROR_STATS_FACT','P134_TA_DATA_DETCR_FACT','P135_COMBO_MEASURE_DATA2_FACT','P150_MSMR_LINEARITY_GAINS_FACT','P172_CLR_COEF_ADJ_FACT','P172_ZONED_SERVO2_FACT','P176_HD_GAP_DELTA_FACT','P180_RESONANCE_FACT','P191_DHS_FACT','P191_SURFACE_FIT_FACT','P211_BPI_CAP_AVG_FACT','P211_HMS_CAP_AVG_FACT','P213_ERROR_RATE4_FACT','P238_MICROJOG_CAL_FACT','P255_LOOP_LPE_AVAGO_FACT','P255_MSMR_FIR_TAPS_FACT','P287_PHYS_SPACING_HSTGRM_FACT','P299_STE_WRT_DATA_FACT','P335_MDW_SCAN_SUMMARY_FACT','P438_ZONE_POLYFIT_DATA_FACT','P451_READ_OPTI_RESULTS_FACT','P451_RGSTR_SWEEP_DATA_EXT_FACT','P451_STATUS_FACT','P627_DEFECT_SUMMARY_FACT']
+policies = []
+
+for table in deep_archive_list:
+    if table.endswith('_FACT'):
+        raw_factory_path = table[:-5] +'/t0'
+    ID = 'deep_archive_{}'.format(table)
+    print(raw_factory_path,ID)
+    policy = {
+        'ID': ID,
+        'Status': 'Enabled',
+        'Transitions':[ {
+            'Days': 7,
+            'StorageClass': 'DEEP_ARCHIVE'
+        }],
+
+        'Filter': {
+            'Prefix': raw_factory_path
+        }
+
+    }
+    policies.append(policy)
+    
+for table in glacier_list:
+    if table.endswith('_FACT'):
+        raw_factory_path = table[:-5] +'/t0'
+    ID = 'glacier_{}'.format(table)
+    print(raw_factory_path,ID)
+    policy = {
+        'ID': ID,
+        'Status': 'Enabled',
+        'Transitions':[ {
+            'Days': 7,
+            'StorageClass': 'GLACIER'
+        }],
+
+        'Filter': {
+            'Prefix': raw_factory_path
+        }
+
+    }
+    policies.append(policy)
+
+print(policies)
+
+try:
+    bucket_lifecycle_configuration = s3.BucketLifecycleConfiguration(bucketname)
+    bucket_lifecycle_configuration.put(
+        LifecycleConfiguration={
+            'Rules':
+                policies
+        }
+    )
+except ClientError as e:
+    logging.error(str(e))
+    trace_msg += str(e['Error']['Message'])
