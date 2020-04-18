@@ -4,7 +4,9 @@
 
 source /home/hadoop/scripts/global_var.sh
 
+#cluster_nm as shown in AWS console
 cluster_nm=$1
+# action can be up/down
 action=$2
 
 today=`date +%Y-%m-%d`
