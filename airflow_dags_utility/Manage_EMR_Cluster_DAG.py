@@ -5,6 +5,7 @@ from datetime import datetime
 import time
 from utility.emr_management import ManageEMR
 
+# Example of ehc_cluster_details stored as airflow variable - 	{"cluster_id": "j-1PC7Y32G6S33", "core": {"id":"ig-F42GOSK65RMI", "min_instances":1, "max_instances":5}, "task_r": {"id":"ig-21WS2NYPEDSAC", "min_instances":0, "max_instances":8}, "task_m": {"id":"ig-2XJ08OWAHIA", "min_instances":0, "max_instances":0}, "task_spot": {"id":"ig-2XA0GPWIDHAN", "min_instances":0, "max_instances":22}}
 
 def setup_reserved_start(**kwargs):
     cluster_details = Variable.get('ehc_cluster_details', deserialize_json=True)
